@@ -94,22 +94,10 @@ class Program
         {
             fareTiro();
         }
-        //Console.WriteLine("1. Se");
-        //Console.WriteLine("2. Salire");
-        //Console.Write("\nSeleziona un'opzione: ");
-
-        //switch (Console.ReadLine())
-        //{
-        //    case "1":
-        //        Play();
-        //        return true;
-        //    case "2":
-        //        return false;
-        //    default:
-        //        Console.WriteLine("Opzione non valida, si prega di riprovare.");
-        //        Console.ReadLine();
-        //        return true;
-        //}
+        if(tiri == 0)
+        {
+            ChiamataDottore();
+        }
     }
 
     private static void statoDiGioco()
@@ -121,11 +109,11 @@ class Program
         foreach (Pacco pacco in pacchi)
         {
             int numeroPacco = (pacchi.IndexOf(pacco) + 1);
-            if (pacco.Disponibile && pacchi.IndexOf(pacco) != pacchi.IndexOf(paccoGiocatore))
+            if (pacco.Disponibile && pacchi.IndexOf(pacco) != pacchi.IndexOf(paccoGiocatore) && !pacco.AppartieneAlGiocatore)
             {
                 Console.WriteLine("#" + numeroPacco + " " + pacco.NomeRegione);
             }
-            else if (!pacco.Disponibile)
+            else if (!pacco.Disponibile && !pacco.AppartieneAlGiocatore)
             {
                 if (pacco.Colore == "rosso")
                 {
@@ -145,23 +133,33 @@ class Program
 
     static void fareTiro()
     {
-        bool valido = false;
-        string numeroDiPacco = "";
-        while (valido == false)
+        bool isValidInput = false;
+        string inputNumeroDiPacco = "";
+        int numeroDiPacco = 0;
+        while (isValidInput == false)
         {
             Console.WriteLine("Inserire numero di pacco");
-            numeroDiPacco = Console.ReadLine();
-            if (int.Parse(numeroDiPacco) >= 1 && int.Parse(numeroDiPacco) <= 20) {
+            inputNumeroDiPacco = Console.ReadLine();
+            isValidInput = int.TryParse(inputNumeroDiPacco, out numeroDiPacco);
+            if (!isValidInput)
+            {
+                Console.WriteLine("Input non valido. Si prega di inserire un numero valido:");
+            }
+            else if (numeroDiPacco >= 1 && numeroDiPacco <= 20 && pacchi.ElementAt((numeroDiPacco - 1)).Disponibile)
                 {
-                    valido = true;
-                }
+                        isValidInput = true;
+            }
+            else
+            {
+                Console.WriteLine("Input non valido. Si prega di inserire un numero valido:");
+                isValidInput = false;
             }
         }
-        string saluto = pacchi.ElementAt((int.Parse(numeroDiPacco) - 1)).Persona.SalutoPersona();
-        pacchi.ElementAt((int.Parse(numeroDiPacco) - 1)).Disponibile = false;
+        string saluto = pacchi.ElementAt((numeroDiPacco - 1)).Persona.SalutoPersona();
+        pacchi.ElementAt((numeroDiPacco - 1)).Disponibile = false;
         Console.WriteLine(saluto);
         Console.ReadLine();
-        if (pacchi.ElementAt((int.Parse(numeroDiPacco) - 1)).Colore == "rosso")
+        if (pacchi.ElementAt((numeroDiPacco - 1)).Colore == "rosso")
         {
             // Set the text color to blue
             Console.ForegroundColor = ConsoleColor.Red;
@@ -171,15 +169,70 @@ class Program
             // Set the text color to blue
             Console.ForegroundColor = ConsoleColor.Red;
         }
-            Console.WriteLine("Il valore del pacco è " + pacchi.ElementAt((int.Parse(numeroDiPacco) - 1)).Valore);
+            Console.WriteLine("Il valore del pacco è " + pacchi.ElementAt((numeroDiPacco - 1)).Valore);
         Console.ReadLine();
         Console.ResetColor();
         tiri--;
         statoDiGioco();
-
     }
 
-        static void Play()
+    static void ChiamataDottore()
+    {
+        int randomNumber = random.Next(1, 3);
+        if(randomNumber == 1)
+        {
+            DottoreFaOfferta();
+        }
+        else
+        {
+            DottoreChiedeCambio();
+        }
+    }
+
+    private static void DottoreFaOfferta()
+    {
+        double totalValoriPacchi = 0;
+        foreach(Pacco pacco in pacchi)
+        {
+            if(pacco.Disponibile)
+            {
+                totalValoriPacchi += pacco.Valore;
+            }
+        }        
+        totalValoriPacchi = Math.Round((Math.Round(totalValoriPacchi * 0.04) / 1000)) * 1000; //Find nearest number divisable by 1000 from the 0.04% of the sum of all available values.
+        Console.WriteLine("Il dottore fa una oferta di " + totalValoriPacchi);
+        Console.ReadLine();
+    }
+    private static void DottoreChiedeCambio()
+    {
+        Console.WriteLine("Il dottore chiede cambio di pacco!");
+        Console.WriteLine("1) Accettare");
+        Console.WriteLine("2) Rifiutare");
+
+        string scelta = Console.ReadLine();
+
+        switch (scelta)
+        {
+            case "1":
+                Console.WriteLine("Hai accettato il cambio di pacco.");
+                CambioPacchi();
+                break;
+            case "2":
+                Console.WriteLine("Hai rifiutato il cambio di pacco.");
+                break;
+            default:
+                Console.WriteLine("Selezione non valida.");
+                break;
+        }
+    }
+
+    private static void CambioPacchi()
+    {
+        Console.WriteLine("Scegli un pacco disponibile!");
+        string scelta = Console.ReadLine();
+    }
+
+    static void Play()
         {
             Console.Clear();
             Console.WriteLine("Affari tuoi!");
@@ -293,9 +346,11 @@ class Program
         {
             paccoGiocatore = pacchi.ElementAt(random.Next(0, pacchi.Count()));
             paccoGiocatore.Persona.NomePersona = nomeGiocatore;
+            paccoGiocatore.Disponibile = false;
+            paccoGiocatore.AppartieneAlGiocatore = true;
             foreach (Pacco pacco in pacchi)
             {
-                if (pacco.Persona != null)
+                if (!pacco.AppartieneAlGiocatore)
                 {
                     pacco.Persona.NomePersona = nomiItaliani[random.Next(0, nomiItaliani.Length)];
                     pacco.Persona.RegionePersona = regioniItaliane[random.Next(0, regioniItaliane.Length)];
@@ -304,5 +359,5 @@ class Program
                 }
             }
         }
-    }
+}
 

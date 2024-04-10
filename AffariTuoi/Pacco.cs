@@ -8,6 +8,8 @@
     public Persona Persona { get; set; }
 
     public bool Disponibile { get; set; }
+
+    public bool AppartieneAlGiocatore { get; set; }
     // Default Constructor
     public Pacco()
     {
@@ -21,6 +23,7 @@
         Valore = valore;
         Persona = new Persona();
         Disponibile = true;
+        AppartieneAlGiocatore = false;
     }
 
     public Pacco(string nomeRegione, int valore, Persona persona)
