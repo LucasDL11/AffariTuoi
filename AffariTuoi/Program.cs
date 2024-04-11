@@ -6,6 +6,7 @@ class Program
     static Random random = new Random(); // Instace of Random
     public static string nomeGiocatore = "";
     public static Pacco paccoGiocatore;
+    public static int numeroPaccoGiocatore;
     public static int tiri = 0;
     public static string[] regioniItaliane = {
             "Abruzzo",
@@ -88,30 +89,47 @@ class Program
 
     static void Giocando()
     {
-        tiri = random.Next(1, (int)((pacchi.Count) * 0.2));       
-        statoDiGioco();
-        while (tiri > 0)
+        int pacchiDisponibile = ContarePacchiDisponibile();
+        while (pacchiDisponibile > 0)
         {
-            fareTiro();
+            tiri = random.Next(1, (int)((pacchi.Count) * 0.2));
+            statoDiGioco();
+            while (tiri > 0)
+            {
+                fareTiro();
+            }
+            if (tiri == 0)
+            {
+                ChiamataDottore();
+            }
         }
-        if(tiri == 0)
+    }
+
+    private static int ContarePacchiDisponibile()
+    {
+        int counter = 0;
+        foreach(Pacco pacco in pacchi)
         {
-            ChiamataDottore();
+            if (pacco.Disponibile)
+            {
+                counter++;
+            }
         }
+        return counter;
     }
 
     private static void statoDiGioco()
     {
         Console.Clear();
         Console.WriteLine($"///////////Giocando " + nomeGiocatore + "///////////");
-        Console.WriteLine($"///////////Tu pacco " + (pacchi.IndexOf(paccoGiocatore) + 1) + "///////////");
+        Console.WriteLine($"///////////Tu pacco " + numeroPaccoGiocatore + "///////////");
         Console.WriteLine($"Tiri: " + tiri);
         foreach (Pacco pacco in pacchi)
         {
             int numeroPacco = (pacchi.IndexOf(pacco) + 1);
-            if (pacco.Disponibile && pacchi.IndexOf(pacco) != pacchi.IndexOf(paccoGiocatore) && !pacco.AppartieneAlGiocatore)
+            if (pacco.Disponibile && !pacco.AppartieneAlGiocatore)
             {
-                Console.WriteLine("#" + numeroPacco + " " + pacco.NomeRegione);
+                Console.WriteLine("Pacco #" + numeroPacco + " ");
             }
             else if (!pacco.Disponibile && !pacco.AppartieneAlGiocatore)
             {
@@ -123,9 +141,9 @@ class Program
                 else
                 {
                     // Set the text color to blue
-                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.ForegroundColor = ConsoleColor.Blue;
                 }
-                Console.WriteLine("#" + numeroPacco + " " + pacco.NomeRegione + " aveva " + pacco.Valore);
+                Console.WriteLine("#" + numeroPacco + " aveva " + pacco.Valore);
                 Console.ResetColor();
             }
         }
@@ -178,7 +196,7 @@ class Program
 
     static void ChiamataDottore()
     {
-        int randomNumber = random.Next(1, 3);
+        int randomNumber = 2; //random.Next(1, 3);
         if(randomNumber == 1)
         {
             DottoreFaOfferta();
@@ -228,8 +246,59 @@ class Program
 
     private static void CambioPacchi()
     {
-        Console.WriteLine("Scegli un pacco disponibile!");
-        string scelta = Console.ReadLine();
+        bool isValidInput = false;
+        string inputNumeroDiPacco = "";
+        int numeroDiPacco = 0;
+        while (isValidInput == false)
+        {
+            Console.WriteLine("Scegli un pacco disponibile!");
+            inputNumeroDiPacco = Console.ReadLine();
+            isValidInput = int.TryParse(inputNumeroDiPacco, out numeroDiPacco);
+            if (!isValidInput)
+            {
+                Console.WriteLine("Input non valido. Si prega di inserire un numero valido:");
+            }
+            else if (numeroDiPacco >= 1 && numeroDiPacco <= 20 && pacchi.ElementAt((numeroDiPacco - 1)).Disponibile)
+            {
+                isValidInput = true;
+                CambiarePacco((numeroDiPacco - 1));
+            }
+            else
+            {
+                Console.WriteLine("Input non valido. Si prega di inserire un numero valido:");
+                isValidInput = false;
+            }
+        }
+    }
+
+    private static void CambiarePacco(int paccoSelezionato)
+    {
+        int paccoGiocatoreIndex = numeroPaccoGiocatore - 1;
+        Pacco paccoGiocatoreBackup = pacchi.ElementAt(paccoGiocatoreIndex);
+        Pacco paccoSelezionatoBackup = pacchi.ElementAt(paccoSelezionato);
+
+        string nomePaccoSelezionatoBackup = paccoSelezionatoBackup.Persona.NomePersona;
+        string regionePaccoSelezionatoBackup = paccoSelezionatoBackup.Persona.RegionePersona;
+
+
+        pacchi[paccoSelezionato] = paccoGiocatoreBackup ; // nuovo pacco giocatore
+        pacchi[paccoGiocatoreIndex] = paccoSelezionatoBackup;
+
+
+        pacchi[paccoGiocatoreIndex].Persona.NomePersona = nomePaccoSelezionatoBackup;
+        pacchi[paccoGiocatoreIndex].Persona.RegionePersona = regionePaccoSelezionatoBackup;
+        pacchi[paccoGiocatoreIndex].AppartieneAlGiocatore = false;
+        pacchi[paccoGiocatoreIndex].Disponibile = true;
+
+        pacchi[paccoSelezionato].Persona.NomePersona = nomeGiocatore;
+        pacchi[paccoSelezionato].Persona.RegionePersona = "";
+        pacchi[paccoSelezionato].AppartieneAlGiocatore = true;
+        pacchi[paccoSelezionato].Disponibile = false;
+
+
+        paccoGiocatore = pacchi[paccoGiocatoreIndex];
+       
+        numeroPaccoGiocatore = paccoSelezionato + 1;
     }
 
     static void Play()
@@ -245,7 +314,7 @@ class Program
             ChiedereDatiGiocatore();
             InitializePacchi();
             AddPeopleToPacchi();
-            AddRegioneToPacchi();
+            //AddRegioneToPacchi();
             Giocando();
         }
         static void ChiedereDatiGiocatore()
@@ -318,36 +387,37 @@ class Program
             }
     }
 
-    private static void AddRegioneToPacchi()
-    {
-        List<int> numberList = new List<int>();
-        foreach (Pacco pacco in pacchi)
-        {
-            if (pacco.NomeRegione == null)
-            {
-                bool unique = false;
-                while (unique == false) {
-                    int randomNumber = random.Next(0, regioniItaliane.Length);
-                    if (!numberList.Contains(randomNumber))
-                    {
-                        pacco.NomeRegione = regioniItaliane[randomNumber];
-                        numberList.Add(randomNumber);
-                        unique = true;
-                    }
-                    else
-                    {
-                        numberList.Add(randomNumber);
-                    }
-                }
-            }
-        }
-    }
+    //private static void AddRegioneToPacchi()
+    //{
+    //    List<int> numberList = new List<int>();
+    //    foreach (Pacco pacco in pacchi)
+    //    {
+    //        if (pacco.NomeRegione == null)
+    //        {
+    //            bool unique = false;
+    //            while (unique == false) {
+    //                int randomNumber = random.Next(0, regioniItaliane.Length);
+    //                if (!numberList.Contains(randomNumber))
+    //                {
+    //                    pacco.NomeRegione = regioniItaliane[randomNumber];
+    //                    numberList.Add(randomNumber);
+    //                    unique = true;
+    //                }
+    //                else
+    //                {
+    //                    numberList.Add(randomNumber);
+    //                }
+    //            }
+    //        }
+    //    }
+    //}
     private static void AddPeopleToPacchi()
         {
             paccoGiocatore = pacchi.ElementAt(random.Next(0, pacchi.Count()));
             paccoGiocatore.Persona.NomePersona = nomeGiocatore;
             paccoGiocatore.Disponibile = false;
             paccoGiocatore.AppartieneAlGiocatore = true;
+            numeroPaccoGiocatore = pacchi.IndexOf(paccoGiocatore) + 1;
             foreach (Pacco pacco in pacchi)
             {
                 if (!pacco.AppartieneAlGiocatore)
